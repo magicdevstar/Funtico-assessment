@@ -1,32 +1,75 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useData } from '../state/DataContext';
-import { Link } from 'react-router-dom';
+import { useItemsData } from './Items/useItemsData';
+import ItemsHeader from './Items/ItemsHeader';
+import LoadingSkeleton from './Items/LoadingSkeleton';
+import ErrorState from './Items/ErrorState';
+import EmptyState from './Items/EmptyState';
+import VirtualizedList from './Items/VirtualizedList';
+import PaginationControls from './Items/PaginationControls';
+import './Items.css';
 
 function Items() {
-  const { items, fetchItems } = useData();
+  const { items, fetchItems, loading, error, pagination } = useData();
+  const {
+    searchQuery,
+    currentPage,
+    handleSearchChange,
+    handlePageChange,
+    handleRetry,
+  } = useItemsData(fetchItems);
 
-  useEffect(() => {
-    let active = true;
+  // Loading state
+  if (loading && items.length === 0) {
+    return (
+      <div className="items-container">
+        <ItemsHeader
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          disabled
+        />
+        <LoadingSkeleton />
+      </div>
+    );
+  }
 
-    // Intentional bug: setState called after component unmount if request is slow
-    fetchItems().catch(console.error);
-
-    // Clean‑up to avoid memory leak (candidate should implement)
-    return () => {
-      active = false;
-    };
-  }, [fetchItems]);
-
-  if (!items.length) return <p>Loading...</p>;
+  // Error state
+  if (error) {
+    return (
+      <div className="items-container">
+        <ErrorState error={error} onRetry={handleRetry} />
+      </div>
+    );
+  }
 
   return (
-    <ul>
-      {items.map(item => (
-        <li key={item.id}>
-          <Link to={'/items/' + item.id}>{item.name}</Link>
-        </li>
-      ))}
-    </ul>
+    <div className="items-container">
+      <ItemsHeader
+        searchQuery={searchQuery}
+        onSearchChange={handleSearchChange}
+      />
+
+      {items.length === 0 ? (
+        <EmptyState searchQuery={searchQuery} />
+      ) : (
+        <>
+          <div className="items-info">
+            <span>
+              Showing {items.length} of {pagination.total} items
+              {searchQuery && ` matching "${searchQuery}"`}
+            </span>
+          </div>
+
+          <VirtualizedList items={items} />
+
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={pagination.totalPages}
+            onPageChange={handlePageChange}
+          />
+        </>
+      )}
+    </div>
   );
 }
 
