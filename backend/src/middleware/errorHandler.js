@@ -6,6 +6,17 @@ const notFound = (req, res, next) => {
   next(err);
 }
 
+// Express error handler middleware
+const expressErrorHandler = (err, req, res, next) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+  
+  res.status(status).json({
+    message: message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+}
+
 const errorHandler = (error) => {
   try {
     if (typeof error !== "string") {
@@ -40,4 +51,4 @@ const loadCookie = () => {
     });
 }
 
-module.exports = { notFound, loadCookie };
+module.exports = { notFound, loadCookie, expressErrorHandler };
